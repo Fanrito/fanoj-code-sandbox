@@ -34,7 +34,7 @@ public abstract class JavaCodeSandBoxTemplate implements CodeSandbox {
 
     private static final String GLOBAL_JAVA_CLASS_NAME = "Main.java";
 
-    private static final Long TIME_OUT = 5000L;
+    private static final Long TIME_OUT = 10000L;
 
     private static final boolean FIRST_INIT = false;
 
@@ -117,9 +117,12 @@ public abstract class JavaCodeSandBoxTemplate implements CodeSandbox {
         String userCodeParentPath = userCodeFile.getParentFile().getAbsolutePath();
 
         List<ExecuteMessage> executeMessageList = new ArrayList<>();
+        StopWatch stopWatch = new StopWatch();
+        long time = 0L;
         for (String inputArgs : inputList) {
             String runCmd = String.format("java -Xmx256m -Dfile.encoding=UTF-8 -cp %s Main %s", userCodeParentPath, inputArgs);
             try {
+                stopWatch.start();
                 Process runProcess = Runtime.getRuntime().exec(runCmd);
                 // 超时控制
                 new Thread(() -> {
@@ -132,7 +135,10 @@ public abstract class JavaCodeSandBoxTemplate implements CodeSandbox {
                     }
                 }).start();
                 ExecuteMessage executeMessage = ProcessUtils.runInteractProcessAndGetMessage(runProcess, "运行", inputArgs);
-
+                stopWatch.stop();
+                time = stopWatch.getLastTaskTimeMillis();
+                executeMessage.setTime(time);
+                executeMessage.setMemory(0L);
                 System.out.println(executeMessage);
                 executeMessageList.add(executeMessage);
             } catch (IOException e) {
