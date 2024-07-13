@@ -22,10 +22,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -45,13 +42,18 @@ public abstract class JavaCodeSandBoxTemplate implements CodeSandbox {
         String language = executeCodeRequest.getLanguage();
 
         File userCodeFile = saveCodeToFile(code);
+        List<ExecuteMessage> executeMessageList = Collections.emptyList();
+        ExecuteCodeResponse outPutResponse;
+        try {
+            ExecuteMessage compileFileExecuteMessage = compileFile(userCodeFile);
+            System.out.println(compileFileExecuteMessage);
 
-        ExecuteMessage compileFileExecuteMessage = compileFile(userCodeFile);
-        System.out.println(compileFileExecuteMessage);
+            executeMessageList = runFile(userCodeFile, inputList);
+            outPutResponse = getOutPutResponse(executeMessageList);
 
-        List<ExecuteMessage> executeMessageList = runFile(userCodeFile, inputList);
-
-        ExecuteCodeResponse outPutResponse = getOutPutResponse(executeMessageList);
+        } catch (RuntimeException e) {
+            outPutResponse = getErrorResponse(e, e.getMessage());
+        }
 
         boolean b = deleteFile(userCodeFile);
 
@@ -210,11 +212,13 @@ public abstract class JavaCodeSandBoxTemplate implements CodeSandbox {
      * @param e
      * @return
      */
-    private ExecuteCodeResponse getErrorResponse(Throwable e) {
+    private ExecuteCodeResponse getErrorResponse(Throwable e, String errInfoMsg) {
         ExecuteCodeResponse executeCodeResponse = new ExecuteCodeResponse();
         executeCodeResponse.setOutputList(new ArrayList<>());
         executeCodeResponse.setMessage(e.getMessage());
         executeCodeResponse.setStatus(2);
+        JudgeInfo judgeInfo = new JudgeInfo();
+        judgeInfo.setMessage(errInfoMsg);
         executeCodeResponse.setJudgeInfo(new JudgeInfo());
 
         return executeCodeResponse;
